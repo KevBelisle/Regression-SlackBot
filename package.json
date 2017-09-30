@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/KevBelisle/Regression-SlackBot/issues"
   },
-  "homepage": "https://github.com/KevBelisle/Regression-SlackBot#readme"
+  "homepage": "https://github.com/KevBelisle/Regression-SlackBot#readme",
+  "dependencies": {
+    "request": "^2.83.0"
+  }
 }

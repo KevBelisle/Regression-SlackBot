@@ -1,3 +1,5 @@
+const request = require("request");
+
 const fateLabels = {
   8:	"Legendary",
   7:	"Epic",
@@ -35,25 +37,35 @@ const getCharacterName = (user_id) => {
   return false;
 }
 
+const confirmationMessages = [
+  "Rolling dice...",
+  "Estimating your failure...",
+  "Approximating your success...",
+  "Seeding pseudo-random generator...",
+  "Shaking magic 8-ball...",
+  "Listening to quantum noise...",
+  "This isn't going to end well..."
+];
+const getConfirmationMessage = () => confirmationMessages[Math.floor(Math.random() * (confirmationMessages.length))];
+
 const partRegex = /((?:\w+)(?: [+-]?\d+)?|(?:\w+ )?(?:[+-]?\d+))/g;
 const findParts = (str) => {return str.match(partRegex)};
 
 const partSplitRegex = /^(\w+)? ?([+-]?\d+)?$/;
 const splitPart = (str) => {return str.match(partSplitRegex)};
 
-let rollDice = (modifier = 0) => {
-  let result = parseInt(modifier);
-  for (let i = 0; i < 4; i++) {
-    result += Math.floor(Math.random() * (3)) - 1;
-  }
-  return result;
+let rollDice = () => {
+  let results = [...Array(4)].map(() => Math.floor(Math.random() * (3)) - 1);
+  return results;
 };
 
-let roll = (skill="Unnamed roll", modifier=0) => {
-	let result = rollDice(modifier);
+let roll = (skill="Unnamed roll", modifier = 0) => {
+	let dice = rollDice();
+  let result = dice.reduce((a, b) => a + b, parseInt(modifier));
 	return {
   	skill: skill,
     modifier: modifier,
+    dice: dice,
     result: result,
     resultLabel: getFateLabel(result)
   }
@@ -73,8 +85,9 @@ const rollCommand = (user_name, user_id, text) => {
     text: `*${user_name}* rolls for...`,
     attachments: results.map((result) => {
       return {
-        mrkdwn_in: ["text"],
-        text: `${result.skill}: *${result.result}* _(${result.resultLabel})_`
+        mrkdwn_in: ["text", "footer"],
+        text: `${result.skill}: *${result.result}* _(${result.resultLabel})_`,
+        footer: `Roll: ${result.dice}, Modifier: ${result.modifier}`
       }
     })
 	};
@@ -94,6 +107,7 @@ const rollCommand = (user_name, user_id, text) => {
  */
 exports.slashCommandsHttp = function slashCommandsHttp (req, res) {
 
+  console.log("Request.body object:")
   console.log(req.body);
 
   if (req.body.team_id != 'T77AH0J0N')
@@ -102,9 +116,20 @@ exports.slashCommandsHttp = function slashCommandsHttp (req, res) {
     return;
   }
 
-  res.json({
+  let responseData = {
     '/roll': rollCommand
-  }[req.body.command](req.body.user_name, req.body.user_id, req.body.text));
+  }[req.body.command](req.body.user_name, req.body.user_id, req.body.text);
+
+  res.json({
+    "response_type": "ephemeral",
+    "text": getConfirmationMessage()
+  });
+
+  request({
+    uri: req.body.response_url,
+    method: "POST",
+    json: responseData
+  });
 };
 
 /*
