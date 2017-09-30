@@ -1,4 +1,4 @@
-const fateLadder = {
+const fateLabels = {
   8:	"Legendary",
   7:	"Epic",
   6:	"Fantastic",
@@ -11,6 +11,29 @@ const fateLadder = {
   "-1":	"Poor",
   "-2":	"Terrible"
 };
+const getFateLabel = (number) => {
+  if (number > 8) {
+    return "Undefinedly awesome";
+  }
+  if (number < -2) {
+    return "Undefinedly bad";
+  }
+  return fateLabels[number];
+}
+
+const characterNames = {
+	'U76J576QM': 'Sam Dunbar',
+  'U76NYHA8L': 'Tabby Carmichael',
+  'U773ZGJEQ': 'Hal Bailmann',
+  'U76JC19E1': 'Marcus Cain',
+  'U76BLTN2X': 'The GM'
+};
+const getCharacterName = (user_id) => {
+	if	(user_id in characterNames) {
+  	return characterNames[user_id];
+  }
+  return false;
+}
 
 const partRegex = /((?:\w+)(?: [+-]?\d+)?|(?:\w+ )?(?:[+-]?\d+))/g;
 const findParts = (str) => {return str.match(partRegex)};
@@ -32,11 +55,11 @@ let roll = (skill="Unnamed roll", modifier=0) => {
   	skill: skill,
     modifier: modifier,
     result: result,
-    resultLabel: fateLadder[result]
+    resultLabel: getFateLabel(result)
   }
 }
 
-const rollCommand = (user_name, text) => {
+const rollCommand = (user_name, user_id, text) => {
 	let parts = findParts(text);
   let results = parts.reduce((acc, part) => {
   	let [,skill,modifier] = splitPart(part);
@@ -44,16 +67,20 @@ const rollCommand = (user_name, text) => {
     return acc;
   }, [])
 
+
   let response = {
-  "response_type": "in_channel",
-	"text": `*${user_name}* rolls for...`,
-    "attachments": results.map((result) => {
-    	return {
-      	mrkdwn_in: ["text"],
-      	text: `${result.skill}: *${result.result}* _(${result.resultLabel})_`
+    response_type: "in_channel",
+    text: `*${user_name}* rolls for...`,
+    attachments: results.map((result) => {
+      return {
+        mrkdwn_in: ["text"],
+        text: `${result.skill}: *${result.result}* _(${result.resultLabel})_`
       }
     })
-};
+	};
+
+  if (getCharacterName(user_id))
+  	response.text = `*${getCharacterName(user_id)}* _(${user_name})_ rolls for...`
 
   return response;
 }
@@ -77,7 +104,7 @@ exports.slashCommandsHttp = function slashCommandsHttp (req, res) {
 
   res.json({
     '/roll': rollCommand
-  }[req.body.command](req.body.user_name, req.body.text));
+  }[req.body.command](req.body.user_name, req.body.user_id, req.body.text));
 };
 
 /*
